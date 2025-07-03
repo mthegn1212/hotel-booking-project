@@ -2,6 +2,7 @@ const User = require('../../models/user.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Đăng ký người dùng mới
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -21,6 +22,7 @@ exports.register = async (req, res) => {
   }
 };
 
+// Đăng nhập
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -48,5 +50,15 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+// Logout không cần xóa token phía server, chỉ cần thông báo cho client xoá token
+exports.logout = async (req, res) => {
+  try {
+    res.status(200).json({
+      message: "Đăng xuất thành công. Vui lòng xoá token phía client!",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi trong quá trình logout!" });
   }
 };

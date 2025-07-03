@@ -14,6 +14,7 @@ app.get('/healthcheck', (req, res) => {
 });
 
 // Các route chính
-app.use("/api/v1/auth", require("./routes/v1/auth.routes"));
+app.use("/api/v1/auth", require("./routes/v1/auth/auth.routes"));
+app.use("/api/v1/users", require("./routes/v1/users/user.routes"));
 
 module.exports = app;
