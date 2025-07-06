@@ -19,5 +19,7 @@ app.use("/api/v1/users", require("./routes/v1/users/user.routes"));
 app.use("/api/v1/hotels", require("./routes/v1/hotels/hotel.routes"));
 app.use("/api/v1/owners", require("./routes/v1/owners/ownerRequest.routes"));
 app.use("/api/v1/rooms", require("./routes/v1/rooms/room.routes"));
+app.use("/api/v1/bookings", require("./routes/v1/bookings/booking.routes"));
+app.use("/api/v1/reviews", require("./routes/v1/reviews/review.routes"));
 
 module.exports = app;
