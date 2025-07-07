@@ -62,3 +62,27 @@ exports.deleteRoom = async (req, res) => {
   await room.remove();
   res.json({ message: "Room deleted" });
 };
+
+exports.searchRooms = async (req, res) => {
+  try {
+    const { location, priceMin, priceMax, amenities } = req.query;
+
+    const hotels = await Hotel.find(
+      location ? { location: { $regex: location, $options: 'i' } } : {}
+    ).select('_id');
+
+    const hotelIds = hotels.map(h => h._id);
+
+    const query = {
+      hotel_id: { $in: hotelIds },
+      ...(priceMin && { price: { $gte: +priceMin } }),
+      ...(priceMax && { price: { ...((priceMin && { $gte: +priceMin }) || {}), $lte: +priceMax } }),
+      ...(amenities && { amenities: { $all: amenities.split(',') } }),
+    };
+
+    const rooms = await Room.find(query).populate('hotel_id', 'name location');
+    res.json(rooms);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

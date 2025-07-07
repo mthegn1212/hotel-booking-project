@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const roomController = require("../../../controllers/rooms/room.controller");
 const verifyToken = require("../../../middlewares/auth/verifyToken");
+const roomController = require("../../../controllers/rooms/room.controller");
 
 router.get("/", roomController.getAllRooms);
+router.get('/search', roomController.searchRooms);
 router.get("/:id", roomController.getRoomById);
 
 router.post("/", verifyToken, roomController.createRoom);

@@ -66,3 +66,27 @@ exports.cancelBooking = async (req, res) => {
   await booking.save();
   res.json({ message: "Đã huỷ booking" });
 };
+
+exports.payBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (booking.user_id.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    if (booking.isPaid) {
+      return res.status(400).json({ message: 'Booking already paid' });
+    }
+
+    booking.isPaid = true;
+    booking.paidAt = new Date();
+    booking.paymentMethod = req.body.paymentMethod || 'cod';
+    booking.status = 'confirmed';
+
+    await booking.save();
+    res.json({ message: 'Payment successful', booking });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
