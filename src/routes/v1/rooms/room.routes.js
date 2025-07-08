@@ -5,6 +5,7 @@ const roomController = require("../../../controllers/rooms/room.controller");
 
 router.get("/", roomController.getAllRooms);
 router.get('/search', roomController.searchRooms);
+router.get('/check-availability/:id', roomController.checkAvailability);
 router.get("/:id", roomController.getRoomById);
 
 router.post("/", verifyToken, roomController.createRoom);

@@ -1,5 +1,6 @@
 const Room = require("../../models/room.model");
 const Hotel = require("../../models/hotel.model");
+const Booking = require('../../models/booking.model');
 
 exports.createRoom = async (req, res) => {
   try {
@@ -84,5 +85,44 @@ exports.searchRooms = async (req, res) => {
     res.json(rooms);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+exports.checkAvailability = async (req, res) => {
+  try {
+    const roomId = req.params.id;
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ message: 'Thiếu start_date hoặc end_date' });
+    }
+
+    const start = new Date(start_date);
+    const end = new Date(end_date);
+
+    const overlappingBookings = await Booking.find({
+      room_id: roomId,
+      status: { $ne: 'cancelled' }, // Loại trừ booking đã huỷ
+      $or: [
+        { start_date: { $lte: end }, end_date: { $gte: start } } // giao nhau
+      ]
+    });
+
+    if (overlappingBookings.length > 0) {
+      return res.json({
+        roomId,
+        isAvailable: false,
+        message: 'Phòng đã có người đặt trong khoảng thời gian này'
+      });
+    }
+
+    res.json({
+      roomId,
+      isAvailable: true,
+      message: 'Phòng còn trống trong khoảng thời gian đã chọn'
+    });
+  } catch (err) {
+    console.error("❌ Lỗi kiểm tra phòng trống:", err);
+    res.status(500).json({ message: 'Lỗi server khi kiểm tra phòng trống' });
   }
 };
