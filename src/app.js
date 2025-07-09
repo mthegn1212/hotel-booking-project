@@ -21,5 +21,8 @@ app.use("/api/v1/owners", require("./routes/v1/owners/ownerRequest.routes"));
 app.use("/api/v1/rooms", require("./routes/v1/rooms/room.routes"));
 app.use("/api/v1/bookings", require("./routes/v1/bookings/booking.routes"));
 app.use("/api/v1/reviews", require("./routes/v1/reviews/review.routes"));
+app.use("/api/v1/uploads", require("./routes/v1/uploads/upload.routes"));
 
 module.exports = app;
+
+require('./jobs/autoCancelBooking.job');
