@@ -1,0 +1,108 @@
+paths:
+  /api/v1/reviews:
+    post:
+      tags:
+        - Review
+      summary: Tạo đánh giá khách sạn (cần đã từng đặt phòng)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hotel_id
+                - rating
+              properties:
+                hotel_id:
+                  type: string
+                rating:
+                  type: number
+                comment:
+                  type: string
+      responses:
+        '201':
+          description: Đã tạo đánh giá thành công
+
+  /api/v1/reviews/hotel/{hotel_id}:
+    get:
+      tags:
+        - Review
+      summary: Lấy tất cả đánh giá cho một khách sạn
+      parameters:
+        - in: path
+          name: hotel_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Danh sách đánh giá
+
+  /api/v1/reviews/hotel/{hotel_id}/average:
+    get:
+      tags:
+        - Review
+      summary: Lấy điểm đánh giá trung bình của khách sạn
+      parameters:
+        - in: path
+          name: hotel_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Giá trị trung bình rating và tổng số đánh giá
+
+  /api/v1/reviews/{review_id}:
+    put:
+      tags:
+        - Review
+      summary: Cập nhật đánh giá của người dùng
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: review_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: number
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Đánh giá đã được cập nhật
+
+    delete:
+      tags:
+        - Review
+      summary: Xoá đánh giá (người dùng đã tạo)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: review_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Xoá đánh giá thành công
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

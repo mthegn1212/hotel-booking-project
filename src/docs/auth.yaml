@@ -1,0 +1,80 @@
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Đăng ký tài khoản mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [customer, owner, admin]
+      responses:
+        '201':
+          description: Đăng ký thành công
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Đăng nhập tài khoản
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Đăng nhập thành công, trả về token và thông tin user
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Đăng xuất (client nên xoá token)
+      responses:
+        '200':
+          description: Đăng xuất thành công
+
+  /api/v1/auth/profile:
+    get:
+      tags:
+        - Auth
+      summary: Lấy thông tin người dùng hiện tại (cần token)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Thông tin người dùng
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const swaggerRouter = require('./docs/swagger');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/v1/rooms", require("./routes/v1/rooms/room.routes"));
 app.use("/api/v1/bookings", require("./routes/v1/bookings/booking.routes"));
 app.use("/api/v1/reviews", require("./routes/v1/reviews/review.routes"));
 app.use("/api/v1/uploads", require("./routes/v1/uploads/upload.routes"));
+app.use('/api-docs', swaggerRouter);
 
 module.exports = app;
 

@@ -1,0 +1,43 @@
+paths:
+  /api/v1/uploads:
+    post:
+      tags:
+        - Upload
+      summary: Tải lên nhiều ảnh (tối đa 5 ảnh)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '200':
+          description: Upload thành công, trả về danh sách URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Upload thành công
+                  urls:
+                    type: array
+                    items:
+                      type: string
+                      format: uri
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,175 @@
+paths:
+  /api/v1/rooms:
+    get:
+      tags:
+        - Room
+      summary: Lấy danh sách tất cả phòng
+      responses:
+        '200':
+          description: Danh sách các phòng
+
+    post:
+      tags:
+        - Room
+      summary: Tạo phòng mới (chỉ owner)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hotel_id
+                - name
+                - price
+              properties:
+                hotel_id:
+                  type: string
+                name:
+                  type: string
+                price:
+                  type: number
+                max_guests:
+                  type: number
+                amenities:
+                  type: array
+                  items:
+                    type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Phòng được tạo thành công
+
+  /api/v1/rooms/{id}:
+    get:
+      tags:
+        - Room
+      summary: Lấy thông tin phòng theo ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Chi tiết phòng
+
+    put:
+      tags:
+        - Room
+      summary: Cập nhật phòng (chỉ owner)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                price:
+                  type: number
+                max_guests:
+                  type: number
+                amenities:
+                  type: array
+                  items:
+                    type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Cập nhật phòng thành công
+
+    delete:
+      tags:
+        - Room
+      summary: Xoá phòng (chỉ owner)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Xoá phòng thành công
+
+  /api/v1/rooms/search:
+    get:
+      tags:
+        - Room
+      summary: Tìm kiếm phòng theo vị trí, giá và tiện nghi
+      parameters:
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: priceMin
+          schema:
+            type: number
+        - in: query
+          name: priceMax
+          schema:
+            type: number
+        - in: query
+          name: amenities
+          schema:
+            type: string
+            description: Danh sách tiện nghi, cách nhau bởi dấu phẩy
+      responses:
+        '200':
+          description: Danh sách phòng phù hợp
+
+  /api/v1/rooms/check-availability/{id}:
+    get:
+      tags:
+        - Room
+      summary: Kiểm tra phòng có trống không trong khoảng thời gian
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: start_date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: end_date
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Kết quả kiểm tra phòng còn trống
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

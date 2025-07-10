@@ -1,0 +1,92 @@
+paths:
+  /api/v1/bookings:
+    post:
+      tags:
+        - Booking
+      summary: Tạo booking mới
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - room_id
+                - start_date
+                - end_date
+              properties:
+                room_id:
+                  type: string
+                start_date:
+                  type: string
+                  format: date
+                end_date:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Booking được tạo thành công
+
+  /api/v1/bookings/my:
+    get:
+      tags:
+        - Booking
+      summary: Lấy danh sách booking của người dùng hiện tại
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Danh sách booking của người dùng
+
+  /api/v1/bookings/{id}:
+    delete:
+      tags:
+        - Booking
+      summary: Hủy booking theo ID (chủ sở hữu)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Hủy booking thành công
+
+  /api/v1/bookings/{id}/pay:
+    patch:
+      tags:
+        - Booking
+      summary: Thanh toán booking
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentMethod:
+                  type: string
+                  enum: [momo, paypal, cod]
+      responses:
+        '200':
+          description: Thanh toán thành công
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

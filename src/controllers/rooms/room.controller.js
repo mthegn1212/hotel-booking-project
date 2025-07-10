@@ -122,7 +122,7 @@ exports.checkAvailability = async (req, res) => {
       message: 'Phòng còn trống trong khoảng thời gian đã chọn'
     });
   } catch (err) {
-    console.error("❌ Lỗi kiểm tra phòng trống:", err);
+    console.error("Lỗi kiểm tra phòng trống:", err);
     res.status(500).json({ message: 'Lỗi server khi kiểm tra phòng trống' });
   }
 };
