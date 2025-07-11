@@ -23,6 +23,7 @@ app.use("/api/v1/rooms", require("./routes/v1/rooms/room.routes"));
 app.use("/api/v1/bookings", require("./routes/v1/bookings/booking.routes"));
 app.use("/api/v1/reviews", require("./routes/v1/reviews/review.routes"));
 app.use("/api/v1/uploads", require("./routes/v1/uploads/upload.routes"));
+app.use("/api/v1/admin/dashboard", require("./routes/v1/admin/dashboard.routes"));
 app.use('/api-docs', swaggerRouter);
 
 module.exports = app;

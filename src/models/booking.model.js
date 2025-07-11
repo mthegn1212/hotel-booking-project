@@ -12,10 +12,11 @@ const bookingSchema = new mongoose.Schema({
     default: 'pending'
   },
   expires_at: Date,
-  created_at: { type: Date, default: Date.now },
   isPaid: { type: Boolean, default: false },
   paidAt: { type: Date },
   paymentMethod: { type: String, enum: ['momo', 'paypal', 'cod'], default: 'cod' }
+}, {
+  timestamps: true
 });
 
 module.exports = mongoose.model('Booking', bookingSchema);
