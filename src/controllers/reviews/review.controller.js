@@ -1,67 +1,53 @@
-const Review = require("../../models/review.model");
-const Booking = require("../../models/booking.model");
+const reviewService = require("../../services/review.service");
 
 exports.createReview = async (req, res) => {
-  const { hotel_id, rating, comment } = req.body;
-  const user_id = req.user.id;
-
-  const booked = await Booking.findOne({ user_id, status: "confirmed" }).populate("room_id");
-  if (!booked || booked.room_id.hotel_id.toString() !== hotel_id)
-    return res.status(403).json({ message: "Bạn chưa từng đặt phòng ở khách sạn này." });
-
-  const exists = await Review.findOne({ user_id, hotel_id });
-  if (exists)
-    return res.status(400).json({ message: "Bạn đã đánh giá khách sạn này rồi." });
-
-  const review = await Review.create({ user_id, hotel_id, rating, comment });
-
-  res.status(201).json({ message: "Đã tạo đánh giá", review });
+  try {
+    const { hotel_id, rating, comment } = req.body;
+    const user_id = req.user.id;
+    const review = await reviewService.createReview(user_id, hotel_id, rating, comment);
+    res.status(201).json({ message: "Đã tạo đánh giá", review });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
 exports.getReviewsByHotel = async (req, res) => {
-  const { hotel_id } = req.params;
-  const reviews = await Review.find({ hotel_id }).populate("user_id", "name");
-  res.json(reviews);
+  try {
+    const { hotel_id } = req.params;
+    const reviews = await reviewService.getReviewsByHotel(hotel_id);
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 exports.updateReview = async (req, res) => {
-  const { review_id } = req.params;
-  const { rating, comment } = req.body;
-
-  const review = await Review.findById(review_id);
-  if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá" });
-  if (review.user_id.toString() !== req.user.id)
-    return res.status(403).json({ message: "Không được sửa đánh giá người khác" });
-
-  review.rating = rating;
-  review.comment = comment;
-  await review.save();
-
-  res.json({ message: "Đã cập nhật đánh giá", review });
+  try {
+    const { review_id } = req.params;
+    const { rating, comment } = req.body;
+    const updatedReview = await reviewService.updateReview(review_id, req.user.id, rating, comment);
+    res.json({ message: "Đã cập nhật đánh giá", review: updatedReview });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
 exports.deleteReview = async (req, res) => {
-  const { review_id } = req.params;
-  const review = await Review.findById(review_id);
-  if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá" });
-  if (review.user_id.toString() !== req.user.id)
-    return res.status(403).json({ message: "Không được xoá đánh giá người khác" });
-
-  await review.remove();
-  res.json({ message: "Đã xoá đánh giá" });
+  try {
+    const { review_id } = req.params;
+    const result = await reviewService.deleteReview(review_id, req.user.id);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
 exports.getHotelRatingAverage = async (req, res) => {
-  const { hotel_id } = req.params;
-  const data = await Review.aggregate([
-    { $match: { hotel_id: new require("mongoose").Types.ObjectId(hotel_id) } },
-    {
-      $group: {
-        _id: "$hotel_id",
-        averageRating: { $avg: "$rating" },
-        totalReviews: { $sum: 1 },
-      },
-    },
-  ]);
-  res.json(data[0] || { averageRating: 0, totalReviews: 0 });
+  try {
+    const { hotel_id } = req.params;
+    const data = await reviewService.getHotelRatingAverage(hotel_id);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

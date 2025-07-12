@@ -1,22 +1,10 @@
-const Booking = require("../../models/booking.model");
+const dashboardService = require("../../services/dashboard.service");
 
 exports.getBookingStats = async (req, res) => {
-  const data = await Booking.aggregate([
-    {
-      $match: {
-        status: "confirmed",
-      },
-    },
-    {
-      $group: {
-        _id: {
-          $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-        },
-        total: { $sum: 1 },
-      },
-    },
-    { $sort: { _id: 1 } },
-  ]);
-
-  res.json(data);
+  try {
+    const data = await dashboardService.getBookingStats();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
