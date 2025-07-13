@@ -3,7 +3,7 @@ const router = express.Router();
 const controller = require("../../../controllers/owners/ownerRequest.controller");
 const verifyToken = require("../../../middlewares/auth/verifyToken");
 const checkRole = require("../../../middlewares/auth/checkRole");
-const validate = require("../../../middlewares/validate");
+const validate = require("../../../middlewares/validate/validate");
 const ownerRequestValidation = require("../../../validations/ownerRequest.validation");
 
 // Customer gửi request

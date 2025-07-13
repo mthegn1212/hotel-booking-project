@@ -3,7 +3,7 @@ const router = express.Router();
 const roomController = require("../../../controllers/rooms/room.controller");
 const verifyToken = require("../../../middlewares/auth/verifyToken");
 const checkRole = require("../../../middlewares/auth/checkRole");
-const validate = require("../../../middlewares/validate");
+const validate = require("../../../middlewares/validate/validate");
 const roomValidation = require("../../../validations/room.validation");
 
 // Tạo phòng mới

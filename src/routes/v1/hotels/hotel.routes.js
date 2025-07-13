@@ -3,7 +3,7 @@ const router = express.Router();
 const hotelController = require("../../../controllers/hotels/hotel.controller");
 const verifyToken = require("../../../middlewares/auth/verifyToken");
 const checkRole = require("../../../middlewares/auth/checkRole");
-const validate = require("../../../middlewares/validate");
+const validate = require("../../../middlewares/validate/validate");
 const hotelValidation = require("../../../validations/hotel.validation");
 
 // Public routes

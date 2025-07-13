@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const reviewController = require("../../../controllers/reviews/review.controller");
 const verifyToken = require("../../../middlewares/auth/verifyToken");
-const validate = require("../../../middlewares/validate");
+const validate = require("../../../middlewares/validate/validate");
 const reviewValidation = require("../../../validations/review.validation");
 
 // Người dùng tạo đánh giá

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bookingController = require('../../../controllers/bookings/booking.controller');
 const verifyToken = require('../../../middlewares/auth/verifyToken');
-const validate = require("../../../middlewares/validate");
+const validate = require("../../../middlewares/validate/validate");
 const bookingValidation = require("../../../validations/booking.validation");
 
 router.post("/", verifyToken, validate(bookingValidation.createBookingSchema), bookingController.createBooking);

@@ -3,7 +3,7 @@ const router = express.Router();
 const verifyToken = require('../../../middlewares/auth/verifyToken');
 const checkRole = require('../../../middlewares/auth/checkRole');
 const userController = require("../../../controllers/users/user.controller");
-const userValidation = require("../../validations/user.validation");
+const userValidation = require("../../../validations/user.validation");
 
 router.get('/admin/users', verifyToken, checkRole('admin'), (req, res) => {
   res.json({
