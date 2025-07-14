@@ -41,6 +41,27 @@ paths:
           description: Danh sách booking của người dùng
 
   /api/v1/bookings/{id}:
+    get:
+      tags:
+        - Booking
+      summary: Lấy thông tin booking theo ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 66cfcf5d62b07b96a94d66c2
+      responses:
+        '200':
+          description: Thông tin chi tiết booking
+        '403':
+          description: Không có quyền truy cập booking này
+        '404':
+          description: Không tìm thấy booking
+
     delete:
       tags:
         - Booking

@@ -51,3 +51,12 @@ exports.payBooking = async (req, res) => {
     res.status(err.status || 500).json({ message: err.message });
   }
 };
+
+exports.getBookingById = async (req, res) => {
+  try {
+    const booking = await BookingService.getBookingById(req.params.id, req.user.id);
+    res.json(booking);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+};

@@ -1,0 +1,79 @@
+paths:
+  /api/v1/reports:
+    post:
+      tags:
+        - Report
+      summary: Gửi báo cáo vi phạm
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+                - target_type
+                - target_id
+              properties:
+                reason:
+                  type: string
+                target_type:
+                  type: string
+                  enum: [user, hotel, room]
+                target_id:
+                  type: string
+      responses:
+        '201':
+          description: Tạo báo cáo thành công
+
+    get:
+      tags:
+        - Report
+      summary: Admin - Lấy tất cả báo cáo
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Danh sách tất cả report
+
+  /api/v1/reports/{id}:
+    get:
+      tags:
+        - Report
+      summary: Admin - Lấy chi tiết một báo cáo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Chi tiết báo cáo
+
+    delete:
+      tags:
+        - Report
+      summary: Admin - Xoá báo cáo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Xoá báo cáo thành công
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

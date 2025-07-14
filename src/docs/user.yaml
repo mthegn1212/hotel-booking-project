@@ -32,6 +32,28 @@ paths:
         '200':
           description: Danh sách người dùng hoặc thông báo từ admin
 
+    /api/v1/users/{id}:
+      delete:
+        tags:
+          - User
+        summary: Admin - Xoá người dùng theo ID
+        security:
+          - bearerAuth: []
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID của người dùng cần xoá
+            schema:
+              type: string
+        responses:
+          '200':
+            description: Người dùng đã bị xoá
+          '404':
+            description: Không tìm thấy người dùng
+          '403':
+            description: Không có quyền thực hiện
+
 components:
   securitySchemes:
     bearerAuth:

@@ -17,3 +17,12 @@ exports.getMyReviews = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const result = await userService.softDeleteUser(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

@@ -83,6 +83,16 @@ const payBooking = async ({ bookingId, userId, role, paymentMethod }) => {
   return booking;
 };
 
+exports.getBookingById = async (id, userId) => {
+  const booking = await Booking.findById(id)
+    .populate({ path: "room_id", populate: { path: "hotel_id", select: "name location" } });
+
+  if (!booking) throw { status: 404, message: "Booking not found" };
+  if (booking.user_id.toString() !== userId) throw { status: 403, message: "Unauthorized access" };
+
+  return booking;
+};
+
 module.exports = {
   createBooking,
   cancelBooking,

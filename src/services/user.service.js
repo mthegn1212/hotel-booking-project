@@ -11,3 +11,13 @@ exports.getMyBookings = async (userId) => {
 exports.getMyReviews = async (userId) => {
   return await Review.find({ user_id: userId }).populate("hotel_id", "name");
 };
+
+exports.softDeleteUser = async (id) => {
+  const user = await User.findById(id);
+  if (!user) throw new Error("User not found");
+
+  user.isDeleted = true;
+  await user.save();
+
+  return { message: "User soft-deleted successfully" };
+};
