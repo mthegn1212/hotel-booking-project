@@ -1,9 +1,17 @@
-module.exports = (schema) => {
+// src/middlewares/validate/validate.js
+const Joi = require("joi");
+
+const validate = (schema) => {
   return (req, res, next) => {
-    const { error } = schema.validate(req.body);
+    const { error } = schema.validate(req.body, { abortEarly: false });
+
     if (error) {
-      return res.status(400).json({ message: error.details[0].message });
+      const errors = error.details.map((err) => err.message);
+      return res.status(400).json({ errors });
     }
+
     next();
   };
 };
+
+module.exports = validate;

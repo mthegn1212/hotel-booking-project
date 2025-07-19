@@ -1,33 +1,36 @@
 const Joi = require("joi");
 
 const registerSchema = Joi.object({
-  name: Joi.string().min(2).max(50).required().messages({
-    "string.empty": "Tên không được để trống",
-    "string.min": "Tên phải có ít nhất 2 ký tự",
-    "any.required": "Vui lòng nhập tên",
+  name: Joi.string().required(),
+  phone: Joi.string().pattern(/^[0-9]{10,11}$/).required(),
+  password: Joi.string().min(6).required(),
+  confirmPassword: Joi.any().valid(Joi.ref("password")).required().messages({
+    "any.only": "Passwords do not match",
   }),
-  email: Joi.string().email().required().messages({
-    "string.email": "Email không hợp lệ",
-    "any.required": "Vui lòng nhập email",
-  }),
-  password: Joi.string().min(6).required().messages({
-    "string.min": "Mật khẩu phải có ít nhất 6 ký tự",
-    "any.required": "Vui lòng nhập mật khẩu",
-  }),
-  role: Joi.string().valid("customer", "owner", "admin").optional(),
 });
 
 const loginSchema = Joi.object({
-  email: Joi.string().email().required().messages({
-    "string.email": "Email không hợp lệ",
-    "any.required": "Vui lòng nhập email",
-  }),
-  password: Joi.string().required().messages({
-    "any.required": "Vui lòng nhập mật khẩu",
-  }),
+  identifier: Joi.string().required(), // phone hoặc email
+  password: Joi.string().required(),
+});
+
+const otpSchema = Joi.object({
+  phone: Joi.string().pattern(/^[0-9]{10,11}$/).required(),
+  otp: Joi.string().length(6).required(),
+});
+
+const phoneSchema = Joi.object({
+  phone: Joi.string().pattern(/^[0-9]{10,11}$/).required(),
+});
+
+const emailSchema = Joi.object({
+  email: Joi.string().email().required(),
 });
 
 module.exports = {
   registerSchema,
   loginSchema,
+  otpSchema,
+  phoneSchema,
+  emailSchema,
 };

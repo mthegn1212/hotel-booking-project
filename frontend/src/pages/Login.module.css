@@ -87,3 +87,22 @@
   color: #3182f6;
   text-decoration: none;
 }
+/* Login.module.css */
+.otpRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.otpButton {
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.otpButton:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}

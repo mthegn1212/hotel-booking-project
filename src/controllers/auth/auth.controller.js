@@ -4,13 +4,22 @@ const generateJWT = require("../../utils/jwt");
 const { isEmail, isPhone } = require("../../utils/validate");
 const otpService = require("../../services/otp.service");
 
+// Hàm sinh OTP
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
 // Đăng ký
 exports.register = async (req, res) => {
   try {
     const result = await authService.registerUser(req.body);
-    res.status(201).json({ message: result });
+    res.status(201).json({ 
+      message: result.message || "Đăng ký thành công!",
+      user: result.user 
+    });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    console.error("Register error:", err);
+    res.status(err.status || 500).json({ 
+      error: err.message || "Lỗi trong quá trình đăng ký" 
+    });
   }
 };
 
@@ -20,104 +29,267 @@ exports.login = async (req, res) => {
     const data = await authService.loginUser(req.body);
     res.status(200).json(data);
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    console.error("Login error:", err);
+    res.status(err.status || 500).json({ 
+      error: err.message || "Đăng nhập thất bại" 
+    });
   }
 };
 
 // Đăng xuất
-exports.logout = async (_req, res) => {
+exports.logout = async (req, res) => {
   try {
-    res.status(200).json({ message: "Đăng xuất thành công. Vui lòng xoá token phía client!" });
-  } catch {
-    res.status(500).json({ message: "Lỗi trong quá trình logout!" });
-  }
-};
-
-// Kiểm tra email hoặc số điện thoại đã tồn tại
-exports.checkUser = async (req, res) => {
-  const { emailOrPhone } = req.body;
-  const cleaned = emailOrPhone.trim().replace(/\s+/g, "").replace("+", "");
-
-  try {
-    const exists = await User.findOne({
-      $or: [
-        { email: cleaned },
-        { phone: cleaned },
-      ],
+    // Có thể thêm logic blacklist token ở đây nếu cần
+    res.status(200).json({ 
+      message: "Đăng xuất thành công. Vui lòng xoá token phía client!" 
     });
-    res.status(200).json({ exists: !!exists });
-  } catch {
-    res.status(500).json({ error: "Lỗi kiểm tra tài khoản!" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ 
+      error: "Lỗi trong quá trình đăng xuất!" 
+    });
   }
 };
 
-// Hàm sinh OTP
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+// Kiểm tra tồn tại email
+exports.checkEmail = async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email || !email.trim()) {
+    return res.status(400).json({ error: "Email không được để trống" });
+  }
+
+  if (!isEmail(email.trim())) {
+    return res.status(400).json({ error: "Email không hợp lệ" });
+  }
+
+  try {
+    const exists = await authService.checkUserByEmail(email.trim());
+    res.status(200).json({ exists });
+  } catch (err) {
+    console.error("Check email error:", err);
+    res.status(500).json({ error: "Lỗi hệ thống khi kiểm tra email!" });
+  }
+};
+
+// Kiểm tra tồn tại phone
+exports.checkPhone = async (req, res) => {
+  const { phone } = req.body;
+  
+  if (!phone || !phone.trim()) {
+    return res.status(400).json({ error: "Số điện thoại không được để trống" });
+  }
+
+  const cleanPhone = phone.trim().replace(/\s+/g, "").replace("+", "");
+  
+  if (!isPhone(cleanPhone)) {
+    return res.status(400).json({ error: "Số điện thoại không hợp lệ" });
+  }
+
+  try {
+    const exists = await authService.checkUserByPhone(cleanPhone);
+    res.status(200).json({ exists });
+  } catch (err) {
+    console.error("Check phone error:", err);
+    res.status(500).json({ error: "Lỗi hệ thống khi kiểm tra số điện thoại!" });
+  }
+};
 
 // Gửi OTP
 exports.sendOTP = async (req, res) => {
-  const input = req.body.email ?? req.body.phone;
-  if (!input) {
+  const { email, phone } = req.body;
+  const input = email || phone;
+  
+  if (!input || !input.trim()) {
     return res.status(400).json({ error: "Thiếu email hoặc số điện thoại" });
   }
+
+  const cleanInput = input.trim();
+  let finalInput = cleanInput;
+  
+  // Validate input format
+  if (email) {
+    if (!isEmail(cleanInput)) {
+      return res.status(400).json({ error: "Email không hợp lệ" });
+    }
+  } else {
+    finalInput = cleanInput.replace(/\s+/g, "").replace("+", "");
+    if (!isPhone(finalInput)) {
+      return res.status(400).json({ error: "Số điện thoại không hợp lệ" });
+    }
+  }
+
   try {
     const otp = generateOTP();
-    await otpService.storeOTP(input, otp);
-    await otpService.send(input, otp);
-    // nếu dev thì trả luôn OTP
+    
+    // Store OTP with expiration (usually 5-10 minutes)
+    await otpService.storeOTP(finalInput, otp);
+    
+    // Send OTP via email or SMS
+    await otpService.send(finalInput, otp);
+
+    // In development mode, return OTP for testing
     if (process.env.NODE_ENV === 'development') {
-      return res.status(200).json({ message: "OTP đã được gửi!", otp });
+      return res.status(200).json({ 
+        message: "OTP đã được gửi!", 
+        otp: otp,
+        debug: { input: finalInput }
+      });
     }
-    // production chỉ trả message
+
     res.status(200).json({ message: "OTP đã được gửi!" });
   } catch (err) {
     console.error("sendOTP error:", err);
-    res.status(500).json({ error: "Không gửi được OTP!" });
+    res.status(500).json({ 
+      error: "Không thể gửi OTP. Vui lòng thử lại!" 
+    });
   }
 };
 
 // Xác minh OTP
 exports.verifyOTP = async (req, res) => {
-  // 1) Lấy thô và clean input
-  const raw = req.body.email ?? req.body.phone;
-  const otp = req.body.otp;
-  if (!raw || !otp) {
-    return res.status(400).json({ error: "Thiếu email/sđt hoặc OTP" });
+  const { email, phone, otp } = req.body;
+  const rawInput = email || phone;
+  
+  if (!rawInput || !rawInput.trim()) {
+    return res.status(400).json({ error: "Thiếu email hoặc số điện thoại" });
   }
-  const input = raw.trim().replace(/\s+/g, "").replace("+", "");
+  
+  if (!otp || !otp.trim()) {
+    return res.status(400).json({ error: "Thiếu mã OTP" });
+  }
+
+  const cleanInput = rawInput.trim();
+  let finalInput = cleanInput;
+  
+  // Clean and validate input
+  if (email) {
+    if (!isEmail(cleanInput)) {
+      return res.status(400).json({ error: "Email không hợp lệ" });
+    }
+  } else {
+    finalInput = cleanInput.replace(/\s+/g, "").replace("+", "");
+    if (!isPhone(finalInput)) {
+      return res.status(400).json({ error: "Số điện thoại không hợp lệ" });
+    }
+  }
+
+  const cleanOTP = otp.trim();
+  
+  if (!/^\d{6}$/.test(cleanOTP)) {
+    return res.status(400).json({ error: "OTP phải là 6 chữ số" });
+  }
 
   try {
-    // 2) Verify OTP
-    const valid = await otpService.verify(input, otp);
+    const valid = await otpService.verify(finalInput, cleanOTP);
+    
     if (!valid) {
       return res.status(400).json({ error: "OTP không đúng hoặc đã hết hạn" });
     }
 
-    // 3) Tìm hoặc tạo user
-    let user = await User.findOne({
-      $or: [
-        { email: isEmail(input) ? input : null },
-        { phone: isPhone(input) ? input : null },
-      ],
-    });
-    if (!user) {
-      user = await User.create({
-        email: isEmail(input) ? input : null,
-        phone: isPhone(input) ? input : null,
-        role: "customer",
-      });
-    }
+    // Remove OTP after successful verification to prevent reuse
+    await otpService.removeOTP(finalInput);
 
-    // 4) Cấp token
-    const token = generateJWT(user._id);
-    return res.json({ token, user });
+    return res.status(200).json({ 
+      success: true, 
+      verified: finalInput,
+      message: "OTP xác thực thành công"
+    });
   } catch (err) {
     console.error("verifyOTP error:", err);
-    // Nếu dev, trả luôn message chi tiết
-    if (process.env.NODE_ENV === "development") {
-      return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: process.env.NODE_ENV === "development" 
+        ? err.message 
+        : "Xác minh OTP thất bại. Vui lòng thử lại!"
+    });
+  }
+};
+
+// Refresh token (optional)
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      return res.status(401).json({ error: "Thiếu refresh token" });
     }
-    // Prod chỉ chung chung
-    return res.status(500).json({ error: "Xác minh OTP thất bại" });
+
+    const data = await authService.refreshToken(refreshToken);
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Refresh token error:", err);
+    res.status(err.status || 401).json({ 
+      error: err.message || "Refresh token không hợp lệ" 
+    });
+  }
+};
+
+// Forgot password
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email, phone } = req.body;
+    const input = email || phone;
+    
+    if (!input) {
+      return res.status(400).json({ error: "Thiếu email hoặc số điện thoại" });
+    }
+
+    const result = await authService.forgotPassword(input);
+    res.status(200).json({ message: result });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(err.status || 500).json({ 
+      error: err.message || "Lỗi khi xử lý quên mật khẩu" 
+    });
+  }
+};
+
+// Reset password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: "Thiếu token hoặc mật khẩu mới" });
+    }
+
+    const result = await authService.resetPassword(token, newPassword);
+    res.status(200).json({ message: result });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(err.status || 500).json({ 
+      error: err.message || "Lỗi khi đặt lại mật khẩu" 
+    });
+  }
+};
+
+// Google OAuth callback
+exports.googleCallback = async (req, res) => {
+  try {
+    // Tạm thời chỉ báo callback hoạt động
+    res.status(200).json({ message: "Xử lý Google OAuth callback thành công (demo)" });
+  } catch (err) {
+    console.error("Google callback error:", err);
+    res.status(500).json({ error: "Lỗi xử lý Google OAuth" });
+  }
+};
+
+// Facebook OAuth callback
+exports.facebookCallback = async (req, res) => {
+  try {
+    res.status(200).json({ message: "Xử lý Facebook OAuth callback thành công (demo)" });
+  } catch (err) {
+    console.error("Facebook callback error:", err);
+    res.status(500).json({ error: "Lỗi xử lý Facebook OAuth" });
+  }
+};
+
+// Apple OAuth callback
+exports.appleCallback = async (req, res) => {
+  try {
+    res.status(200).json({ message: "Xử lý Apple OAuth callback thành công (demo)" });
+  } catch (err) {
+    console.error("Apple callback error:", err);
+    res.status(500).json({ error: "Lỗi xử lý Apple OAuth" });
   }
 };
