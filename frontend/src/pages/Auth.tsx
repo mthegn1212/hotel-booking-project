@@ -20,7 +20,6 @@ export default function Auth() {
   const [role, setRole] = useState("customer");
 
   useEffect(() => {
-    const phoneRegex = /^[0-9]{8,15}$/;
     const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
     setIsEmail(emailRegex.test(identifier));
   }, [identifier]);
@@ -53,26 +52,30 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = isEmail 
-        ? { email: identifier, password }
-        : { phone: identifier, password };
-      
-      console.log("Login Payload:", payload); // <-- Thêm dòng này
-      const loginRes = await axios.post("/api/v1/auth/login", payload);
-      // ...
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        console.error("Login Error:", err.response?.data); // <-- Log chi tiết lỗi
-        alert(err.response?.data?.error || 'Đăng nhập thất bại');
-      } else {
-        console.error("Login Error:", err);
-        alert('Đăng nhập thất bại');
-      }
+      const payload = {
+        identifier,
+        password,
+      };
+
+      console.log("Login Payload:", payload);
+
+      const res = await axios.post("/api/v1/auth/login", payload);
+
+      // Lưu token vào localStorage
+      localStorage.setItem("token", res.data.token);
+      alert("Đăng nhập thành công!");
+
+      navigate("/");
+
+    } catch (err: any) {
+      console.error("Login error:", err.response?.data);
+      alert(err.response?.data?.error || "Lỗi khi đăng nhập");
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
     console.log("Register Data:", { 
       name, 
       password, 
@@ -81,7 +84,12 @@ export default function Auth() {
       identifier,
       isEmail,
       isOTPVerified 
-    }); // <-- Log tất cả dữ liệu
+    });
+
+    if (isEmail) {
+      alert("Hiện tại chỉ hỗ trợ đăng ký bằng số điện thoại. Vui lòng sử dụng Đăng nhập bằng Google.");
+      return;
+    }
 
     if (password !== confirmPassword) {
       alert("Mật khẩu xác nhận không khớp!");
@@ -96,17 +104,22 @@ export default function Auth() {
     try {
       const payload = {
         name,
+        phone: identifier,
         password,
+        confirmPassword,
         role,
-        [isEmail ? "email" : "phone"]: identifier,
       };
 
-      console.log("Register Payload:", payload); // <-- Log payload
+      console.log("Register Payload:", payload);
+
       const res = await axios.post("/api/v1/auth/register", payload);
-      // ...
+      
+      alert(res.data?.message || "Đăng ký thành công!");
+
+      navigate("/auth");
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        console.error("Register Error:", err.response?.data); // <-- Log chi tiết lỗi
+        console.error("Register Error:", err.response?.data);
         alert(err.response?.data?.error || "Lỗi khi đăng ký");
       } else {
         console.error("Register Error:", err);

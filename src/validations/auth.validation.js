@@ -7,6 +7,7 @@ const registerSchema = Joi.object({
   confirmPassword: Joi.any().valid(Joi.ref("password")).required().messages({
     "any.only": "Passwords do not match",
   }),
+  role: Joi.string().valid("customer", "owner", "admin").required(),
 });
 
 const loginSchema = Joi.object({

@@ -26,13 +26,15 @@ exports.register = async (req, res) => {
 // Đăng nhập
 exports.login = async (req, res) => {
   try {
-    const data = await authService.loginUser(req.body);
-    res.status(200).json(data);
+    const result = await authService.loginUser(req.body);
+    res.status(200).json({
+      message: "Đăng nhập thành công!",
+      user: result.user,
+      token: result.token,
+    });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(err.status || 500).json({ 
-      error: err.message || "Đăng nhập thất bại" 
-    });
+    res.status(err.status || 500).json({ error: err.message });
   }
 };
 

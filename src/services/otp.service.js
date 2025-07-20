@@ -1,5 +1,5 @@
 const sendEmail = require("../utils/mailer");
-const sendSMS = require("../utils/sms"); // You need to implement this
+const sendSMS = require("../utils/sms");
 const { isEmail } = require("../utils/validate");
 
 // In-memory OTP store (in production, use Redis or database)

@@ -95,15 +95,14 @@ exports.registerUser = async (userData) => {
 
 // Đăng nhập người dùng
 exports.loginUser = async (loginData) => {
-  const { email, phone, password } = loginData;
+  const { identifier , password } = loginData;
   
   try {
-    const identifier = email || phone;
     if (!identifier || !password) {
       throw { status: 400, message: "Thiếu thông tin đăng nhập" };
     }
 
-    // Find user by email or phone
+    // Find user by phone
     const user = await User.findByEmailOrPhone(identifier);
     if (!user) {
       throw { status: 401, message: "Thông tin đăng nhập không chính xác" };

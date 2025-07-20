@@ -8,7 +8,7 @@ const Header = () => {
       <nav className={styles.nav}>
         <Link to="/">Trang chủ</Link>
         <Link to="/auth">Đăng nhập</Link>
-        <Link to="/register">Đăng ký</Link>
+        <Link to="/auth">Đăng ký</Link>
       </nav>
     </header>
   );
