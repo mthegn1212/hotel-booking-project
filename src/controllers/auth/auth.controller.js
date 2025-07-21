@@ -11,12 +11,13 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 exports.register = async (req, res) => {
   try {
     const result = await authService.registerUser(req.body);
+    
     res.status(201).json({ 
       message: result.message || "Đăng ký thành công!",
-      user: result.user 
+      user: result.user,
+      token: result.token
     });
   } catch (err) {
-    console.error("Register error:", err);
     res.status(err.status || 500).json({ 
       error: err.message || "Lỗi trong quá trình đăng ký" 
     });

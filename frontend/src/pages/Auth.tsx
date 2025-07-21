@@ -2,35 +2,31 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { FaGoogle, FaApple, FaFacebookF } from "react-icons/fa";
 import styles from "./Login.module.css";
+
+type Step = 'start' | 'login' | 'register';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [identifier, setIdentifier] = useState(""); // phone or email
+  const [identifier, setIdentifier] = useState("");
   const [isEmail, setIsEmail] = useState(false);
-  const [step, setStep] = useState<'start' | 'login' | 'register'>('start');
+  const [step, setStep] = useState<Step>('start');
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [exists, setExists] = useState<boolean | null>(null);
-  const [isOTPVerified, setIsOTPVerified] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [role, setRole] = useState("customer");
 
   useEffect(() => {
     const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
     setIsEmail(emailRegex.test(identifier));
   }, [identifier]);
 
-  // Countdown effect for OTP resend
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (countdown > 0) {
-      interval = setInterval(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setCountdown(prev => prev - 1), 1000);
     }
     return () => clearInterval(interval);
   }, [countdown]);
@@ -42,7 +38,6 @@ export default function Auth() {
       const res = isEmail
         ? await axios.post("/api/v1/auth/check-email", payload)
         : await axios.post("/api/v1/auth/check-phone", payload);
-      setExists(res.data.exists);
       setStep(res.data.exists ? 'login' : 'register');
     } catch (err: any) {
       alert(err.response?.data?.error || 'Lỗi hệ thống');
@@ -52,137 +47,89 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = {
-        identifier,
-        password,
-      };
+      const res = await axios.post("/api/v1/auth/login", { identifier, password });
 
-      console.log("Login Payload:", payload);
+      const token = res.data.token;
 
-      const res = await axios.post("/api/v1/auth/login", payload);
+      localStorage.setItem("token", token);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-      // Lưu token vào localStorage
-      localStorage.setItem("token", res.data.token);
       alert("Đăng nhập thành công!");
-
       navigate("/");
-
     } catch (err: any) {
-      console.error("Login error:", err.response?.data);
       alert(err.response?.data?.error || "Lỗi khi đăng nhập");
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    console.log("Register Data:", { 
-      name, 
-      password, 
-      confirmPassword, 
-      role, 
-      identifier,
-      isEmail,
-      isOTPVerified 
-    });
+  if (isEmail) {
+    window.location.href = `/api/v1/auth/google?email=${encodeURIComponent(identifier)}`;
+    return;
+  }
 
-    if (isEmail) {
-      alert("Hiện tại chỉ hỗ trợ đăng ký bằng số điện thoại. Vui lòng sử dụng Đăng nhập bằng Google.");
-      return;
-    }
+  if (password !== confirmPassword) {
+    alert("Mật khẩu xác nhận không khớp!");
+    return;
+  }
 
-    if (password !== confirmPassword) {
-      alert("Mật khẩu xác nhận không khớp!");
-      return;
-    }
+  if (!otp.trim()) {
+    alert("Vui lòng nhập mã OTP!");
+    return;
+  }
 
-    if (!isOTPVerified) {
-      alert("Vui lòng xác thực OTP trước!");
-      return;
-    }
+  try {
+    await axios.post("/api/v1/auth/verify-otp", { phone: identifier, otp: otp.trim() });
+  } catch (err: any) {
+    alert(err.response?.data?.error || "OTP không hợp lệ!");
+    return;
+  }
 
-    try {
-      const payload = {
-        name,
-        phone: identifier,
-        password,
-        confirmPassword,
-        role,
-      };
-
-      console.log("Register Payload:", payload);
-
-      const res = await axios.post("/api/v1/auth/register", payload);
-      
-      alert(res.data?.message || "Đăng ký thành công!");
-
-      navigate("/auth");
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        console.error("Register Error:", err.response?.data);
-        alert(err.response?.data?.error || "Lỗi khi đăng ký");
-      } else {
-        console.error("Register Error:", err);
-        alert("Lỗi khi đăng ký");
-      }
-    }
-  };
+  try {
+    const payload = {
+      name: identifier,
+      identifier: identifier,
+      password,
+      confirmPassword,
+      role: 'customer'
+    };
+    const res = await axios.post("/api/v1/auth/register", payload);
+    alert(res.data?.message || "Đăng ký thành công!");
+    navigate("/auth");
+  } catch (err: any) {
+    alert(err.response?.data?.error || "Lỗi khi đăng ký");
+  }
+};
 
   const handleSendOTP = async () => {
     try {
-      const payload = isEmail ? { email: identifier } : { phone: identifier };
-      await axios.post("/api/v1/auth/send-otp", payload);
+      await axios.post("/api/v1/auth/send-otp", { phone: identifier });
       setOtpSent(true);
       setCountdown(60);
       alert("OTP đã được gửi!");
-      
-      // Reset OTP sent state after countdown
-      setTimeout(() => {
-        setOtpSent(false);
-        setCountdown(0);
-      }, 60000);
+      setTimeout(() => { setOtpSent(false); setCountdown(0); }, 60000);
     } catch (err: any) {
       alert(err.response?.data?.error || "Lỗi khi gửi OTP");
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!otp.trim()) {
-      alert("Vui lòng nhập mã OTP!");
-      return;
-    }
-
-    try {
-      const payload = isEmail
-        ? { email: identifier, otp: otp.trim() }
-        : { phone: identifier, otp: otp.trim() };
-
-      await axios.post("/api/v1/auth/verify-otp", payload);
-      setIsOTPVerified(true);
-      alert("Xác thực OTP thành công!");
-    } catch (err: any) {
-      alert(err.response?.data?.error || "OTP không hợp lệ!");
     }
   };
 
   const resetToStart = () => {
     setStep('start');
     setIdentifier('');
-    setName('');
     setPassword('');
     setConfirmPassword('');
     setOtp('');
     setOtpSent(false);
-    setIsOTPVerified(false);
-    setExists(null);
     setCountdown(0);
   };
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.wrapper}>
+    <div className={styles.overlay} onClick={resetToStart}>
+      <div className={styles.wrapper} onClick={e => e.stopPropagation()}>
+        <button className={styles.closeBtn} onClick={resetToStart}>×</button>
         <h2 className={styles.title}>Đăng nhập / Đăng ký</h2>
-        
+
         {step === 'start' && (
           <form onSubmit={handleCheckUser} className={styles.form}>
             <input
@@ -193,9 +140,7 @@ export default function Auth() {
               className={styles.input}
               required
             />
-            <button type="submit" className={styles.button}>
-              Tiếp tục
-            </button>
+            <button type="submit" className={styles.button}>Tiếp tục</button>
           </form>
         )}
 
@@ -217,119 +162,106 @@ export default function Auth() {
               Chưa có tài khoản? Đăng ký
             </button>
             <button type="button" className={styles.link} onClick={resetToStart}>
-              Đăng nhập bằng tài khoản khác
+              Đăng nhập khác
             </button>
           </form>
         )}
 
         {step === 'register' && (
-          <form onSubmit={handleRegister} className={styles.form}>
-            <div className={styles.identifierDisplay}>
-              Đăng ký với: <strong>{identifier}</strong>
+          isEmail ? (
+            <div className={styles.form}>
+              <p className={styles.emailLinkText}>Đăng ký qua email:</p>
+              <button
+                className={`${styles.socialBtn} ${styles.google}`}
+                onClick={() => window.location.href = `/api/v1/auth/google?email=${identifier}`}
+              >
+                <FaGoogle /> <span>Google</span>
+              </button>
+              <button type="button" className={styles.link} onClick={resetToStart}>
+                Đăng ký bằng số điện thoại
+              </button>
             </div>
-            
-            <input
-              type="text"
-              placeholder="Họ và tên"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className={styles.input}
-              required
-            />
+          ) : (
+            <form onSubmit={handleRegister} className={styles.form}>
+              <div className={styles.identifierDisplay}>
+                Đăng ký với: <strong>{identifier}</strong>
+              </div>
 
-            <div className={styles.otpRow}>
+              <div className={styles.otpRow}>
+                <input
+                  type="text"
+                  placeholder="Mã OTP"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value)}
+                  className={styles.input}
+                  required
+                  maxLength={6}
+                />
+                <button
+                  type="button"
+                  className={styles.otpButton}
+                  onClick={handleSendOTP}
+                  disabled={otpSent || countdown > 0}
+                >
+                  {countdown > 0 ? `${countdown}s` : otpSent ? "Đã gửi" : "Gửi mã"}
+                </button>
+              </div>
+
               <input
-                type="text"
-                placeholder="Mã OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                type="password"
+                placeholder="Tạo mật khẩu"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
                 className={styles.input}
                 required
-                maxLength={6}
+                minLength={6}
               />
+
+              <input
+                type="password"
+                placeholder="Xác nhận mật khẩu"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                className={styles.input}
+                required
+                minLength={6}
+              />
+
+              <button type="submit" className={styles.button}>Đăng ký</button>
               <button
                 type="button"
-                onClick={handleSendOTP}
-                className={styles.otpButton}
-                disabled={otpSent || countdown > 0}
+                className={styles.link}
+                onClick={() => navigate("/auth")}
               >
-                {countdown > 0 ? `${countdown}s` : otpSent ? "Đã gửi" : "Gửi mã"}
+                Quay lại trang đăng nhập
               </button>
-            </div>
-
-            {otp && !isOTPVerified && (
-              <button
-                type="button"
-                onClick={handleVerifyOTP}
-                className={styles.verifyButton}
-              >
-                Xác thực OTP
+              <button type="button" className={styles.link} onClick={resetToStart}>
+                Đổi phương thức
               </button>
-            )}
-
-            {isOTPVerified && (
-              <div className={styles.otpVerified}>✓ OTP đã được xác thực</div>
-            )}
-
-            <select
-              value={role}
-              onChange={e => setRole(e.target.value)}
-              className={styles.input}
-              required
-            >
-              <option value="customer">Khách hàng</option>
-              <option value="seller">Người bán</option>
-            </select>
-
-            <input
-              type="password"
-              placeholder="Tạo mật khẩu"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className={styles.input}
-              required
-              minLength={6}
-            />
-            
-            <input
-              type="password"
-              placeholder="Xác nhận mật khẩu"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              className={styles.input}
-              required
-              minLength={6}
-            />
-            
-            <button 
-              type="submit" 
-              className={styles.button}
-              disabled={!isOTPVerified}
-            >
-              Đăng ký
-            </button>
-            
-            <button type="button" className={styles.link} onClick={() => setStep('login')}>
-              Đã có tài khoản? Đăng nhập
-            </button>
-            <button type="button" className={styles.link} onClick={resetToStart}>
-              Sử dụng email/số điện thoại khác
-            </button>
-          </form>
+            </form>
+          )
         )}
 
-        <div className={styles.orDivider}>hoặc đăng nhập/đăng ký với</div>
+        <div className={styles.orDivider}>Hoặc</div>
         <div className={styles.socialButtons}>
-          {['apple', 'google', 'facebook'].map(provider => (
-            <button
-              key={provider}
-              onClick={() => window.location.href = `/api/v1/auth/${provider}`}
-              className={styles.socialBtn}
-            >
-              <span>{provider.charAt(0).toUpperCase() + provider.slice(1)}</span>
-              <i className={`fab fa-${provider}${provider === 'facebook' ? '-f' : ''}`} />
-            </button>
-          ))}
+          <button
+            className={`${styles.socialBtn} ${styles.google}`}
+            onClick={() => window.location.href = "/api/v1/auth/google"}
+          >
+            <FaGoogle /> <span>Google</span>
+          </button>
+          <button
+            className={`${styles.socialBtn} ${styles.apple}`}
+            onClick={() => window.location.href = "/api/v1/auth/apple"}
+          >
+            <FaApple /> <span>Apple</span>
+          </button>
+          <button
+            className={`${styles.socialBtn} ${styles.facebook}`}
+            onClick={() => window.location.href = "/api/v1/auth/facebook"}
+          >
+            <FaFacebookF /> <span>Facebook</span>
+          </button>
         </div>
       </div>
     </div>

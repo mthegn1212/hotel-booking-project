@@ -7,91 +7,51 @@ const jwt = require("jsonwebtoken");
 
 // Đăng ký người dùng mới
 exports.registerUser = async (userData) => {
-  const { name, email, phone, password, role = 'customer' } = userData;
-  
-  try {
-    // Validate input
-    if (!name || name.trim().length < 2) {
-      throw { status: 400, message: "Tên phải có ít nhất 2 ký tự" };
-    }
+  const { name, identifier, password, role = 'customer' } = userData;
 
-    if (!password || password.length < 6) {
-      throw { status: 400, message: "Mật khẩu phải có ít nhất 6 ký tự" };
-    }
-
-    const identifier = email || phone;
-    if (!identifier) {
-      throw { status: 400, message: "Phải có email hoặc số điện thoại" };
-    }
-
-    // Clean and validate identifier
-    let cleanEmail = null;
-    let cleanPhone = null;
-
-    if (email) {
-      cleanEmail = email.trim().toLowerCase();
-      if (!isEmail(cleanEmail)) {
-        throw { status: 400, message: "Email không hợp lệ" };
-      }
-    }
-
-    if (phone) {
-      cleanPhone = phone.trim().replace(/\s+/g, "").replace("+", "");
-      if (!isPhone(cleanPhone)) {
-        throw { status: 400, message: "Số điện thoại không hợp lệ" };
-      }
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [
-        ...(cleanEmail ? [{ email: cleanEmail }] : []),
-        ...(cleanPhone ? [{ phone: cleanPhone }] : [])
-      ].filter(Boolean)
-    });
-
-    if (existingUser) {
-      throw { status: 400, message: "Email hoặc số điện thoại đã được sử dụng" };
-    }
-
-    // Create new user
-    const newUser = new User({
-      name: name.trim(),
-      email: cleanEmail,
-      phone: cleanPhone,
-      password, // Will be hashed by the pre-save middleware
-      role,
-      email_verified: !!cleanEmail, // Set to true if email registration
-      phone_verified: !!cleanPhone, // Set to true if phone registration
-    });
-
-    await newUser.save();
-
-    // Generate JWT token
-    const token = generateJWT({
-      id: newUser._id,
-      role: newUser.role,
-      email: newUser.email,
-      phone: newUser.phone
-    });
-
-    return {
-      message: "Đăng ký thành công!",
-      user: newUser.toJSON(),
-      token
-    };
-
-  } catch (error) {
-    if (error.name === 'ValidationError') {
-      throw { 
-        status: 400, 
-        message: Object.values(error.errors)[0].message 
-      };
-    }
-    throw error;
+  if (!name || name.trim().length < 2) {
+    throw { status: 400, message: "Tên phải có ít nhất 2 ký tự" };
   }
-};
 
+  if (!password || password.length < 6) {
+    throw { status: 400, message: "Mật khẩu phải có ít nhất 6 ký tự" };
+  }
+
+  if (!identifier) {
+    throw { status: 400, message: "Vui lòng cung cấp số điện thoại hoặc email" };
+  }
+
+  const cleanIdf = identifier.trim().toLowerCase();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanIdf);
+  const isPhone = /^[0-9]{10,11}$/.test(cleanIdf);
+
+  if (!isEmail && !isPhone) {
+    throw { status: 400, message: "Định dạng không hợp lệ" };
+  }
+
+  const query = isEmail ? { email: cleanIdf } : { phone: cleanIdf };
+  const existingUser = await User.findOne(query);
+  if (existingUser) {
+    throw { status: 400, message: isEmail ? "Email đã được sử dụng" : "Số điện thoại đã được sử dụng" };
+  }
+
+  const newUser = new User({
+    name: name.trim(),
+    password,
+    role,
+    ...(isEmail ? { email: cleanIdf, email_verified: true } : { phone: cleanIdf, phone_verified: true })
+  });
+
+  await newUser.save();
+
+  const token = generateJWT({ id: newUser._id, role: newUser.role });
+
+  return {
+    message: "Đăng ký thành công!",
+    user: newUser.toJSON(),
+    token
+  };
+};
 
 // Đăng nhập người dùng
 exports.loginUser = async (loginData) => {

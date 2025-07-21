@@ -1,83 +1,47 @@
+// src/models/user.model.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
   name: { 
-    type: String, 
-    required: [true, 'Tên là bắt buộc'],
-    trim: true,
-    minlength: [2, 'Tên phải có ít nhất 2 ký tự'],
-    maxlength: [50, 'Tên không được quá 50 ký tự']
+    type: String, required: true, trim: true, minlength: 2, maxlength: 50 
   },
   email: { 
-    type: String, 
-    unique: true, 
-    sparse: true,
+    type: String,
     lowercase: true,
     trim: true,
+    unique: true,
+    sparse: true,
+    default: undefined,
     validate: {
-      validator: function(email) {
-        if (!email) return true; // Allow empty email if phone is provided
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      },
+      validator: (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
       message: 'Email không hợp lệ'
     }
   },
-  phone: { 
-    type: String, 
-    unique: true, 
-    sparse: true,
+  phone: {
+    type: String,
     trim: true,
+    unique: true,
+    sparse: true,
     validate: {
-      validator: function(phone) {
-        if (!phone) return true; // Allow empty phone if email is provided
-        const cleanPhone = phone.replace(/\s+/g, "").replace("+", "");
-        return /^[0-9]{8,15}$/.test(cleanPhone);
-      },
+      validator: (val) => !val || /^[0-9]{8,15}$/.test(val.replace(/\s+/g, '').replace('+', '')),
       message: 'Số điện thoại không hợp lệ'
     }
   },
-  password: { 
-    type: String, 
-    required: [true, 'Mật khẩu là bắt buộc'],
-    minlength: [6, 'Mật khẩu phải có ít nhất 6 ký tự']
-  },
-  role: {
-    type: String,
-    enum: {
-      values: ['admin', 'seller', 'customer'],
-      message: 'Role phải là admin, seller hoặc customer'
-    },
-    default: 'customer',
-  },
-  is_active: { 
-    type: Boolean, 
-    default: true 
-  },
-  email_verified: {
-    type: Boolean,
-    default: false
-  },
-  phone_verified: {
-    type: Boolean,
-    default: false
-  },
-  avatar: {
-    type: String,
-    default: null
-  },
-  last_login: {
-    type: Date,
-    default: null
-  },
-  login_attempts: {
-    type: Number,
-    default: 0
-  },
-  locked_until: {
-    type: Date,
-    default: null
-  }
+  password: { type: String, required: true, minlength: 6 },
+  role: { type: String, enum: ['admin', 'seller', 'customer'], default: 'customer' },
+  is_active: { type: Boolean, default: true },
+  email_verified: { type: Boolean, default: false },
+  phone_verified: { type: Boolean, default: false },
+  avatar: { type: String, default: null },
+  last_login: { type: Date, default: null },
+  login_attempts: { type: Number, default: 0 },
+  locked_until: { type: Date, default: null },
+
+  // fields for social providers
+  facebookId: { type: String, default: null, unique: true, sparse: true },
+  googleId:   { type: String, default: null, unique: true, sparse: true },
+  appleId:    { type: String, default: null, unique: true, sparse: true }
 }, { 
   timestamps: true,
   toJSON: {
@@ -91,87 +55,75 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Validate that at least one of email or phone is provided
+userSchema.index(
+  { email: 1 }, 
+  {
+    unique: true,
+    partialFilterExpression: {
+      email: { $type: "string" } // Chỉ áp dụng unique khi email là string
+    }
+  }
+);
+
+// Ensure at least one of phone or socialId or email is present
 userSchema.pre('validate', function(next) {
-  if (!this.email && !this.phone) {
-    const error = new Error('Phải có ít nhất email hoặc số điện thoại');
-    error.name = 'ValidationError';
-    return next(error);
+  if (!this.phone && !this.email && !this.facebookId && !this.googleId && !this.appleId) {
+    const err = new Error('Phải có ít nhất phone hoặc social login hoặc email');
+    err.name = 'ValidationError';
+    return next(err);
   }
   next();
 });
 
-// Hash password before saving
+// Hash password
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  
   try {
-    const saltRounds = 12;
-    this.password = await bcrypt.hash(this.password, saltRounds);
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
-  } catch (error) {
-    next(error);
+  } catch(err) {
+    next(err);
   }
 });
 
-// Instance method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+// methods
+userSchema.methods.comparePassword = function(candidate) {
+  return bcrypt.compare(candidate, this.password);
 };
-
-// Instance method to check if account is locked
 userSchema.methods.isLocked = function() {
   return !!(this.locked_until && this.locked_until > Date.now());
 };
-
-// Instance method to increment login attempts
-userSchema.methods.incLoginAttempts = async function() {
-  const maxAttempts = 5;
-  const lockTime = 2 * 60 * 60 * 1000; // 2 hours
-
-  // If we have a previous lock that has expired, restart at 1
+userSchema.methods.incLoginAttempts = function() {
+  const max = 5;
+  const lockTime = 2*60*60*1000;
   if (this.locked_until && this.locked_until < Date.now()) {
-    return this.updateOne({
-      $unset: { locked_until: 1 },
-      $set: { login_attempts: 1 }
-    });
+    return this.updateOne({ $unset: { locked_until: 1 }, $set: { login_attempts: 1 }});
   }
-
-  const updates = { $inc: { login_attempts: 1 } };
-  
-  // If we have hit max attempts and it's not locked yet, lock the account
-  if (this.login_attempts + 1 >= maxAttempts && !this.isLocked()) {
-    updates.$set = { locked_until: Date.now() + lockTime };
+  const updates = { $inc: { login_attempts: 1 }};
+  if (this.login_attempts+1 >= max && !this.isLocked()) {
+    updates.$set = { locked_until: Date.now()+lockTime };
   }
-
   return this.updateOne(updates);
 };
-
-// Instance method to reset login attempts
-userSchema.methods.resetLoginAttempts = async function() {
-  return this.updateOne({
-    $unset: { login_attempts: 1, locked_until: 1 }
-  });
+userSchema.methods.resetLoginAttempts = function() {
+  return this.updateOne({ $unset: { login_attempts:1, locked_until:1 }});
 };
 
-// Static method to find by email or phone
-userSchema.statics.findByEmailOrPhone = function(identifier) {
-  const cleanIdentifier = identifier.trim();
-  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanIdentifier);
-  
-  if (isEmail) {
-    return this.findOne({ email: cleanIdentifier.toLowerCase() });
-  } else {
-    const cleanPhone = cleanIdentifier.replace(/\s+/g, "").replace("+", "");
-    return this.findOne({ phone: cleanPhone });
-  }
+// Static find
+userSchema.statics.findByEmailOrPhone = function(idf) {
+  const val = idf.trim();
+  const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (emailRx.test(val)) return this.findOne({ email: val.toLowerCase() });
+  return this.findOne({ phone: val });
 };
 
-// Indexes for performance
-userSchema.index({ email: 1 });
-userSchema.index({ phone: 1 });
-userSchema.index({ role: 1 });
-userSchema.index({ is_active: 1 });
-userSchema.index({ createdAt: -1 });
+// Indexes
+userSchema.index({ email:1 });
+userSchema.index({ phone:1 });
+userSchema.index({ facebookId:1 });
+userSchema.index({ googleId:1 });
+userSchema.index({ appleId:1 });
+userSchema.index({ createdAt:-1 });
 
 module.exports = mongoose.model('User', userSchema);

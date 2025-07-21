@@ -2,12 +2,12 @@ const Joi = require("joi");
 
 const registerSchema = Joi.object({
   name: Joi.string().required(),
-  phone: Joi.string().pattern(/^[0-9]{10,11}$/).required(),
+  identifier: Joi.string().required(),
   password: Joi.string().min(6).required(),
   confirmPassword: Joi.any().valid(Joi.ref("password")).required().messages({
     "any.only": "Passwords do not match",
   }),
-  role: Joi.string().valid("customer", "owner", "admin").required(),
+  role: Joi.string().valid("customer", "owner", "admin").default("customer"),
 });
 
 const loginSchema = Joi.object({
