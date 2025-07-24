@@ -3,6 +3,7 @@ const User = require("../../models/user.model");
 const generateJWT = require("../../utils/jwt");
 const { isEmail, isPhone } = require("../../utils/validate");
 const otpService = require("../../services/otp.service");
+const bcrypt = require("bcryptjs");
 
 // Hàm sinh OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -227,42 +228,34 @@ exports.refreshToken = async (req, res) => {
   }
 };
 
-// Forgot password
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email, phone } = req.body;
-    const input = email || phone;
-    
-    if (!input) {
-      return res.status(400).json({ error: "Thiếu email hoặc số điện thoại" });
-    }
-
-    const result = await authService.forgotPassword(input);
-    res.status(200).json({ message: result });
-  } catch (err) {
-    console.error("Forgot password error:", err);
-    res.status(err.status || 500).json({ 
-      error: err.message || "Lỗi khi xử lý quên mật khẩu" 
-    });
-  }
-};
-
-// Reset password
 exports.resetPassword = async (req, res) => {
+  const { phone, newPassword } = req.body;
+
+  if (!phone || !newPassword) {
+    return res.status(400).json({ error: "Thiếu số điện thoại hoặc mật khẩu mới" });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: "Mật khẩu phải có ít nhất 6 ký tự" });
+  }
+
   try {
-    const { token, newPassword } = req.body;
-    
-    if (!token || !newPassword) {
-      return res.status(400).json({ error: "Thiếu token hoặc mật khẩu mới" });
+    const user = await User.findOne({ phone });
+
+    if (!user) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng với số điện thoại này" });
     }
 
-    const result = await authService.resetPassword(token, newPassword);
-    res.status(200).json({ message: result });
-  } catch (err) {
-    console.error("Reset password error:", err);
-    res.status(err.status || 500).json({ 
-      error: err.message || "Lỗi khi đặt lại mật khẩu" 
-    });
+    // Băm mật khẩu mới
+    const salt = await bcrypt.genSalt(12);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    await user.save();
+
+    return res.status(200).json({ message: "Đặt lại mật khẩu thành công!" });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return res.status(500).json({ error: "Lỗi máy chủ khi đặt lại mật khẩu" });
   }
 };
 

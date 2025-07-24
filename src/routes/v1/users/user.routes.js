@@ -14,5 +14,6 @@ router.get('/admin/users', verifyToken, checkRole('admin'), (req, res) => {
 router.get("/bookings", verifyToken, userController.getMyBookings);
 router.get("/reviews", verifyToken, userController.getMyReviews);
 router.get("/me", verifyToken, userController.getCurrentUser);
+router.delete("/:id", verifyToken, checkRole(["admin"]), userController.deleteUser);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 // src/main.tsx
+import "./config/axiosConfig";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";

@@ -1,4 +1,5 @@
 const userService = require("../../services/user.service");
+const User = require("../../models/user.model"); 
 
 exports.getMyBookings = async (req, res) => {
   try {

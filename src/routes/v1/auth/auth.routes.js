@@ -115,13 +115,6 @@ router.post('/refresh-token',
   authController.refreshToken
 );
 
-// Forgot & Reset Password
-router.post('/forgot-password',
-  authLimiter,
-  sanitizeInput,
-  authController.forgotPassword
-);
-
 router.post('/reset-password',
   authLimiter,
   sanitizeInput,

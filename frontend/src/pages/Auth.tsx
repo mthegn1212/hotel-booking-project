@@ -1,11 +1,12 @@
 // src/pages/Auth.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios from "../config/axiosConfig";
 import { FaGoogle, FaApple, FaFacebookF } from "react-icons/fa";
-import styles from "./Login.module.css";
+import styles from "./Login.module.css"
+import { useAuth } from '../context/AuthContext';
 
-type Step = 'start' | 'login' | 'register';
+type Step = 'start' | 'login' | 'register' | 'reset';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -62,45 +63,83 @@ export default function Auth() {
   };
 
   const handleRegister = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (isEmail) {
-    window.location.href = `/api/v1/auth/google?email=${encodeURIComponent(identifier)}`;
-    return;
-  }
+    if (isEmail) {
+      window.location.href = `/api/v1/auth/google?email=${encodeURIComponent(identifier)}`;
+      return;
+    }
 
-  if (password !== confirmPassword) {
-    alert("Mật khẩu xác nhận không khớp!");
-    return;
-  }
+    if (password !== confirmPassword) {
+      alert("Mật khẩu xác nhận không khớp!");
+      return;
+    }
 
-  if (!otp.trim()) {
-    alert("Vui lòng nhập mã OTP!");
-    return;
-  }
+    if (!otp.trim()) {
+      alert("Vui lòng nhập mã OTP!");
+      return;
+    }
 
-  try {
-    await axios.post("/api/v1/auth/verify-otp", { phone: identifier, otp: otp.trim() });
-  } catch (err: any) {
-    alert(err.response?.data?.error || "OTP không hợp lệ!");
-    return;
-  }
+    try {
+      await axios.post("/api/v1/auth/verify-otp", { phone: identifier, otp: otp.trim() });
+    } catch (err: any) {
+      alert(err.response?.data?.error || "OTP không hợp lệ!");
+      return;
+    }
 
-  try {
-    const payload = {
-      name: identifier,
-      identifier: identifier,
-      password,
-      confirmPassword,
-      role: 'customer'
-    };
-    const res = await axios.post("/api/v1/auth/register", payload);
-    alert(res.data?.message || "Đăng ký thành công!");
-    navigate("/auth");
-  } catch (err: any) {
-    alert(err.response?.data?.error || "Lỗi khi đăng ký");
-  }
-};
+    try {
+      const payload = {
+        name: identifier,
+        identifier: identifier,
+        password,
+        confirmPassword,
+        role: 'customer'
+      };
+      const res = await axios.post("/api/v1/auth/register", payload);
+      alert(res.data?.message || "Đăng ký thành công!");
+      navigate("/auth");
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Lỗi khi đăng ký");
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (password !== confirmPassword) {
+      alert("Xác nhận mật khẩu không khớp!");
+      return;
+    }
+
+    if (!otp.trim()) {
+      alert("Vui lòng nhập mã OTP!");
+      return;
+    }
+
+    try {
+      // Xác minh OTP
+      await axios.post("/api/v1/auth/verify-otp", {
+        phone: identifier, // dạng số điện thoại
+        otp: otp.trim(),
+      });
+    } catch (err: any) {
+      alert(err.response?.data?.error || "OTP không hợp lệ!");
+      return;
+    }
+
+    try {
+      // Gửi yêu cầu đặt lại mật khẩu
+      const res = await axios.post("/api/v1/auth/reset-password", {
+        phone: identifier,
+        newPassword: password,
+      });
+
+      alert(res.data?.message || "Đặt lại mật khẩu thành công!");
+      resetToStart(); // reset lại form hoặc redirect
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Lỗi khi đặt lại mật khẩu");
+    }
+  };
 
   const handleSendOTP = async () => {
     try {
@@ -161,8 +200,65 @@ export default function Auth() {
             <button type="button" className={styles.link} onClick={() => setStep('register')}>
               Chưa có tài khoản? Đăng ký
             </button>
+            <button
+              type="button"
+              className={styles.link}
+              onClick={() => setStep('reset')}
+            >
+              Quên mật khẩu?
+            </button>
             <button type="button" className={styles.link} onClick={resetToStart}>
               Đăng nhập khác
+            </button>
+          </form>
+        )}
+
+        {step === 'reset' && (
+          <form onSubmit={handleResetPassword} className={styles.form}>
+            <p className={styles.message}>Chúng tôi sẽ gửi mã OTP tới số: <strong>{identifier}</strong></p>
+
+            <div className={styles.otpRow}>
+                <input
+                  type="text"
+                  placeholder="Mã OTP"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value)}
+                  className={styles.input}
+                  required
+                  maxLength={6}
+                />
+                <button
+                  type="button"
+                  className={styles.otpButton}
+                  onClick={handleSendOTP}
+                  disabled={otpSent || countdown > 0}
+                >
+                  {countdown > 0 ? `${countdown}s` : otpSent ? "Đã gửi" : "Gửi mã"}
+                </button>
+              </div>
+
+            <input
+              type="password"
+              placeholder="Mật khẩu mới"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className={styles.input}
+              required
+              minLength={6}
+            />
+            <input
+              type="password"
+              placeholder="Xác nhận mật khẩu"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              className={styles.input}
+              required
+              minLength={6}
+            />
+            <button type="submit" className={styles.button}>Đặt lại mật khẩu</button>
+
+            <button type="button" className={styles.link} onClick={resetToStart}>
+              Quay lại
             </button>
           </form>
         )}

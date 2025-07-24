@@ -1,5 +1,5 @@
-// src/context/AuthContext.tsx
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
 interface User {
   id: string;
@@ -25,12 +25,12 @@ const AuthContext = createContext<AuthContextProps>({
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(() => {
     try {
-        const saved = localStorage.getItem("user");
-        return saved ? JSON.parse(saved) : null;
+      const saved = localStorage.getItem("user");
+      return saved ? JSON.parse(saved) : null;
     } catch (e) {
-        return null;
+      return null;
     }
-});
+  });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
 
   const login = (user: User, token: string) => {
@@ -46,6 +46,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const res = await axios.get("/api/v1/auth/me", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          setUser(res.data.user);
+        } catch (err) {
+          console.error("Không thể lấy user từ token", err);
+          localStorage.removeItem("token");
+          setUser(null);
+        }
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout }}>
