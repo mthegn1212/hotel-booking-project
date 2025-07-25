@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "../config/axiosConfig";
 import { FaGoogle, FaApple, FaFacebookF } from "react-icons/fa";
 import styles from "./Login.module.css"
-import { useAuth } from '../context/AuthContext';
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 type Step = 'start' | 'login' | 'register' | 'reset';
 
@@ -45,17 +46,30 @@ export default function Auth() {
     }
   };
 
+  // const handleLogin = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   try {
+  //     const res = await axios.post("/api/v1/auth/login", { identifier, password });
+
+  //     const token = res.data.token;
+
+  //     localStorage.setItem("token", token);
+  //     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+  //     alert("Đăng nhập thành công!");
+  //     navigate("/");
+  //   } catch (err: any) {
+  //     alert(err.response?.data?.error || "Lỗi khi đăng nhập");
+  //   }
+  // };
+
+  
+  const { login } = useContext(AuthContext);
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const res = await axios.post("/api/v1/auth/login", { identifier, password });
-
-      const token = res.data.token;
-
-      localStorage.setItem("token", token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-      alert("Đăng nhập thành công!");
+      await login(res.data.token);   // ← gọi context login
       navigate("/");
     } catch (err: any) {
       alert(err.response?.data?.error || "Lỗi khi đăng nhập");
@@ -90,14 +104,16 @@ export default function Auth() {
     try {
       const payload = {
         name: identifier,
-        identifier: identifier,
+        identifier,
         password,
         confirmPassword,
-        role: 'customer'
+        role: "customer"
       };
       const res = await axios.post("/api/v1/auth/register", payload);
       alert(res.data?.message || "Đăng ký thành công!");
-      navigate("/auth");
+      setTimeout(() => {
+        navigate("/auth");
+      }, 100);
     } catch (err: any) {
       alert(err.response?.data?.error || "Lỗi khi đăng ký");
     }
@@ -153,6 +169,10 @@ export default function Auth() {
     }
   };
 
+  const goToHome = () => {
+    navigate("/");
+  };
+
   const resetToStart = () => {
     setStep('start');
     setIdentifier('');
@@ -166,7 +186,7 @@ export default function Auth() {
   return (
     <div className={styles.overlay} onClick={resetToStart}>
       <div className={styles.wrapper} onClick={e => e.stopPropagation()}>
-        <button className={styles.closeBtn} onClick={resetToStart}>×</button>
+        <button className={styles.closeBtn} onClick={goToHome}>×</button>
         <h2 className={styles.title}>Đăng nhập / Đăng ký</h2>
 
         {step === 'start' && (
@@ -197,7 +217,7 @@ export default function Auth() {
               required
             />
             <button type="submit" className={styles.button}>Đăng nhập</button>
-            <button type="button" className={styles.link} onClick={() => setStep('register')}>
+            <button type="button" className={styles.link} onClick={resetToStart}>
               Chưa có tài khoản? Đăng ký
             </button>
             <button
@@ -206,9 +226,6 @@ export default function Auth() {
               onClick={() => setStep('reset')}
             >
               Quên mật khẩu?
-            </button>
-            <button type="button" className={styles.link} onClick={resetToStart}>
-              Đăng nhập khác
             </button>
           </form>
         )}
@@ -327,12 +344,9 @@ export default function Auth() {
               <button
                 type="button"
                 className={styles.link}
-                onClick={() => navigate("/auth")}
+                onClick={resetToStart}
               >
                 Quay lại trang đăng nhập
-              </button>
-              <button type="button" className={styles.link} onClick={resetToStart}>
-                Đổi phương thức
               </button>
             </form>
           )

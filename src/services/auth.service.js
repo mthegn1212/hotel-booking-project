@@ -6,50 +6,27 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 // Đăng ký người dùng mới
-exports.registerUser = async (userData) => {
-  const { name, identifier, password, role = 'customer' } = userData;
-
-  if (!name || name.trim().length < 2) {
-    throw { status: 400, message: "Tên phải có ít nhất 2 ký tự" };
-  }
-
-  if (!password || password.length < 6) {
-    throw { status: 400, message: "Mật khẩu phải có ít nhất 6 ký tự" };
-  }
-
-  if (!identifier) {
-    throw { status: 400, message: "Vui lòng cung cấp số điện thoại hoặc email" };
-  }
-
-  const cleanIdf = identifier.trim().toLowerCase();
-  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanIdf);
-  const isPhone = /^[0-9]{10,11}$/.test(cleanIdf);
-
-  if (!isEmail && !isPhone) {
-    throw { status: 400, message: "Định dạng không hợp lệ" };
-  }
-
-  const query = isEmail ? { email: cleanIdf } : { phone: cleanIdf };
-  const existingUser = await User.findOne(query);
+exports.registerUser = async ({ name, identifier, password, role }) => {
+  const existingUser = await User.findOne({
+    $or: [{ email: identifier }, { phone: identifier }],
+  });
   if (existingUser) {
-    throw { status: 400, message: isEmail ? "Email đã được sử dụng" : "Số điện thoại đã được sử dụng" };
+    throw { status: 409, message: "Số điện thoại đã tồn tại" };
   }
 
   const newUser = new User({
-    name: name.trim(),
+    name,
+    email: identifier.includes("@") ? identifier : undefined,
+    phone: !identifier.includes("@") ? identifier : undefined,
     password,
     role,
-    ...(isEmail ? { email: cleanIdf, email_verified: true } : { phone: cleanIdf, phone_verified: true })
   });
 
   await newUser.save();
 
-  const token = generateJWT({ id: newUser._id, role: newUser.role });
-
   return {
     message: "Đăng ký thành công!",
     user: newUser.toJSON(),
-    token
   };
 };
 
@@ -296,32 +273,17 @@ exports.forgotPassword = async (identifier) => {
 
 
 // Đặt lại mật khẩu
-exports.resetPassword = async (resetToken, newPassword) => {
-  try {
-    if (!newPassword || newPassword.length < 6) {
-      throw { status: 400, message: "Mật khẩu mới phải có ít nhất 6 ký tự" };
-    }
-
-    const decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
-    if (decoded.type !== 'reset') {
-      throw { status: 401, message: "Token không hợp lệ" };
-    }
-
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      throw { status: 404, message: "User không tồn tại" };
-    }
-
-    // Update password (will be hashed by pre-save middleware)
-    user.password = newPassword;
-    await user.save();
-
-    return "Đặt lại mật khẩu thành công!";
-
-  } catch (error) {
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-      throw { status: 401, message: "Token không hợp lệ hoặc đã hết hạn" };
-    }
-    throw error;
+exports.resetPassword = async ({ identifier, newPassword }) => {
+  const user = await User.findByEmailOrPhone(identifier);
+  if (!user) {
+    throw { status: 404, message: "Người dùng không tồn tại" };
   }
+
+  user.password = newPassword;
+  await user.save();
+
+  return {
+    message: "Đặt lại mật khẩu thành công!",
+    user: user.toJSON(),
+  };
 };

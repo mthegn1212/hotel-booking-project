@@ -1,79 +1,46 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import { createContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
+import axios from "../config/axiosConfig";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-interface AuthContextProps {
+type User = { name: string; /*...*/ };
+type AuthContextType = {
   user: User | null;
-  token: string | null;
-  login: (user: User, token: string) => void;
+  login: (token: string) => Promise<void>;
   logout: () => void;
-}
+};
 
-const AuthContext = createContext<AuthContextProps>({
+export const AuthContext = createContext<AuthContextType>({
   user: null,
-  token: null,
-  login: () => {},
+  login: async () => {},
   logout: () => {},
 });
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const saved = localStorage.getItem("user");
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
 
-  const login = (user: User, token: string) => {
-    setUser(user);
-    setToken(token);
-    localStorage.setItem("user", JSON.stringify(user));
+  // Khi có token mới, tự fetch profile
+  const login = async (token: string) => {
     localStorage.setItem("token", token);
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    const res = await axios.get<User>("/api/v1/users/me");
+    setUser(res.data);
   };
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem("user");
     localStorage.removeItem("token");
+    delete axios.defaults.headers.common["Authorization"];
+    setUser(null);
   };
 
+  // Mounted: nếu đã có token, gọi login() để fetch profile
   useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("token");
-      if (token) {
-        try {
-          const res = await axios.get("/api/v1/auth/me", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          setUser(res.data.user);
-        } catch (err) {
-          console.error("Không thể lấy user từ token", err);
-          localStorage.removeItem("token");
-          setUser(null);
-        }
-      }
-    };
-
-    fetchUser();
+    const token = localStorage.getItem("token");
+    if (token) login(token).catch(() => logout());
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);

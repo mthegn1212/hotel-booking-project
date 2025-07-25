@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const authService = require("../../../services/auth.service");
 const authController = require('../../../controllers/auth/auth.controller');
 const verifyToken = require('../../../middlewares/auth/verifyToken');
 const validate = require("../../../middlewares/validate/validate");
@@ -159,27 +160,30 @@ router.put('/profile',
 );
 
 // Change password
-router.post('/change-password',
+router.post(
+  "/change-password",
   verifyToken,
   sanitizeInput,
   async (req, res) => {
     try {
       const userId = req.user.id;
       const { currentPassword, newPassword } = req.body;
-      
+
       if (!currentPassword || !newPassword) {
-        return res.status(400).json({ error: "Thiếu mật khẩu hiện tại hoặc mật khẩu mới" });
+        return res
+          .status(400)
+          .json({ error: "Thiếu mật khẩu hiện tại hoặc mật khẩu mới" });
       }
-      
+
       await authService.changePassword(userId, currentPassword, newPassword);
-      
+
       res.status(200).json({
-        message: "Đổi mật khẩu thành công!"
+        message: "Đổi mật khẩu thành công!",
       });
     } catch (err) {
       console.error("Change password error:", err);
-      res.status(err.status || 500).json({ 
-        error: err.message || "Lỗi khi đổi mật khẩu" 
+      res.status(err.status || 500).json({
+        error: err.message || "Lỗi khi đổi mật khẩu",
       });
     }
   }

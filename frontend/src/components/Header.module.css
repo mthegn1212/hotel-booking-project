@@ -1,10 +1,13 @@
 .header {
   position: sticky;
   top: 0;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  z-index: 50;
+  width: 100%;
+  background: linear-gradient(90deg, #1e3a8a, #2563eb);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
 }
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -13,66 +16,78 @@
   align-items: center;
   justify-content: space-between;
 }
+
 .logo {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: bold;
-  color: #1e40af;
+  color: #fff;
   text-decoration: none;
+  letter-spacing: 1px;
 }
+
 .nav {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
 }
+
 .link {
-  color: #374151;
+  color: #f3f4f6;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  transition: background 0.2s;
+  transition: background 0.3s;
 }
+
 .link:hover {
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.2);
 }
+
 .user {
   position: relative;
 }
+
 .userBtn {
   background: none;
   border: none;
-  color: #374151;
-  font-weight: 500;
+  color: #f3f4f6;
+  font-weight: 600;
   cursor: pointer;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  transition: background 0.2s;
+  transition: background 0.3s;
 }
+
 .userBtn:hover {
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.2);
 }
+
 .dropdown {
   position: absolute;
   right: 0;
   top: 110%;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   list-style: none;
   padding: 0.5rem 0;
   margin: 0;
-  width: 200px;
+  width: 220px;
+  overflow: hidden;
 }
+
 .dropdown li {
   margin: 0;
 }
+
 .dropdown a,
 .dropdown button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 1rem;
-  text-align: left;
+  padding: 0.75rem 1rem;
   background: none;
   border: none;
   color: #374151;
@@ -81,7 +96,8 @@
   cursor: pointer;
   transition: background 0.2s;
 }
+
 .dropdown a:hover,
 .dropdown button:hover {
-  background: #f9fafb;
+  background: #f3f4f6;
 }
