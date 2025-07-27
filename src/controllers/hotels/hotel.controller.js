@@ -1,8 +1,14 @@
 const hotelService = require("../../services/hotel.service");
+const Room = require("../../models/room.model");
+const Hotel = require("../../models/hotel.model");
 
 exports.getAllHotels = async (req, res) => {
-  const hotels = await hotelService.getAllHotels();
-  res.json(hotels);
+  try {
+    const hotels = await hotelService.getAllHotelsWithMinPrice();
+    res.json(hotels);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi lấy danh sách khách sạn", error });
+  }
 };
 
 exports.getHotelById = async (req, res) => {
@@ -57,4 +63,30 @@ exports.getHotelsByCity = async (req, res) => {
   if (hotels.length === 0) return res.status(404).json({ message: "Không tìm thấy khách sạn" });
 
   res.json(hotels);
+};
+
+exports.getHotelsWithMinRoomPrice = async (req, res) => {
+  try {
+    const hotels = await Hotel.find({ is_published: true });
+
+    const results = await Promise.all(
+      hotels.map(async (hotel) => {
+        const cheapestRoom = await Room.findOne({ hotel_id: hotel._id })
+          .sort({ price: 1 })
+          .limit(1);
+
+        return {
+          _id: hotel._id,
+          name: hotel.name,
+          location: hotel.location,
+          images: hotel.images,
+          minRoomPrice: cheapestRoom?.price || null,
+        };
+      })
+    );
+
+    res.json(results.filter((h) => h.minRoomPrice !== null));
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi server: " + err.message });
+  }
 };

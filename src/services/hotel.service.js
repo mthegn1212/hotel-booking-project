@@ -1,4 +1,5 @@
 const Hotel = require("../models/hotel.model");
+const Room = require("../models/room.model");
 
 exports.getAllHotels = async () => {
   return await Hotel.find();
@@ -43,4 +44,36 @@ exports.getHotelsByName = async (name) => {
 
 exports.getHotelsByCity = async (city) => {
   return await Hotel.find({ city: new RegExp(city, "i") });
+};
+
+exports.getAllHotelsWithMinPrice = async () => {
+  return await Hotel.aggregate([
+    {
+      $lookup: {
+        from: "rooms",
+        localField: "_id",
+        foreignField: "hotel_id",
+        as: "rooms",
+      },
+    },
+    {
+      $addFields: {
+        minRoomPrice: {
+          $cond: [
+            { $gt: [{ $size: "$rooms" }, 0] },
+            { $min: "$rooms.price" },
+            null,
+          ],
+        },
+      },
+    },
+    {
+      $project: {
+        name: 1,
+        location: 1,
+        images: 1,
+        minRoomPrice: 1,
+      },
+    },
+  ]);
 };

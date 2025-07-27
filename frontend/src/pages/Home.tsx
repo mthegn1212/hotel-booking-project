@@ -1,20 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Link } from 'react-router-dom';
 import styles from "./Home.module.css";
-
-const MOCK = [
-  { id: 1, title: "Khách sạn Luxury", location: "Hà Nội", price: "2.500.000đ" },
-  { id: 2, title: "Resort Beachside", location: "Đà Nẵng", price: "3.000.000đ" },
-  { id: 3, title: "Villa Mountain", location: "Đà Lạt", price: "2.000.000đ" },
-  { id: 4, title: "City Hotel", location: "TP.HCM", price: "1.800.000đ" },
-];
+import type { Hotel } from "../types/hotel";
 
 export default function Home() {
   const [search, setSearch] = useState("");
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filtered = MOCK.filter(h =>
-    h.title.toLowerCase().includes(search.toLowerCase()) ||
-    h.location.toLowerCase().includes(search.toLowerCase())
-  );
+  const fetchHotels = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get("/api/v1/hotels", {
+        params: search ? { search: search } : {},
+      });
+      setHotels(res.data);
+    } catch (err) {
+      console.error("Lỗi khi fetch hotels:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchHotels();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
 
   return (
     <>
@@ -25,7 +40,7 @@ export default function Home() {
             type="text"
             placeholder="Nhập thành phố hoặc tên khách sạn..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className={styles.search}
           />
         </div>
@@ -33,18 +48,35 @@ export default function Home() {
 
       <section className={styles.listSection}>
         <h2 className={styles.sectionTitle}>Gợi ý dành cho bạn</h2>
-        <div className={styles.grid}>
-          {filtered.map(hotel => (
-            <div key={hotel.id} className={styles.card}>
-              <div className={styles.image} />
-              <div className={styles.info}>
-                <h3>{hotel.title}</h3>
-                <p>{hotel.location}</p>
-                <p className={styles.price}>{hotel.price}/đêm</p>
+
+        {loading ? (
+          <p style={{ textAlign: "center" }}>Đang tải khách sạn...</p>
+        ) : hotels.length === 0 ? (
+          <p style={{ textAlign: "center" }}>Không tìm thấy khách sạn nào phù hợp</p>
+        ) : (
+          <div className={styles.grid}>
+            {hotels.map((hotel) => (
+              <div key={hotel._id} className={styles.card}>
+                <div className={styles.image}>
+                  <img
+                    src={hotel.images?.[0] || "https://via.placeholder.com/300x200"}
+                    alt={hotel.name}
+                    className={styles.hotelImg}
+                  />
+                </div>
+                <div className={styles.info}>
+                  <Link to={`/hotels/${hotel._id}`}>
+                    <h3>{hotel.name}</h3>
+                  </Link>
+                  <p>{hotel.location}</p>
+                  <p className={styles.price}>
+                    {(hotel.minRoomPrice ?? 0).toLocaleString("vi-VN")}đ / đêm
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </>
   );

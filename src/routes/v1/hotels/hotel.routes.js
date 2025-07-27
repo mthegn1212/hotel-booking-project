@@ -11,6 +11,7 @@ router.get("/search/name", validate(hotelValidation.searchByNameSchema, "query")
 router.get("/search/city", validate(hotelValidation.searchByCitySchema, "query"), hotelController.getHotelsByCity);
 router.get("/", hotelController.getAllHotels);
 router.get("/:id", hotelController.getHotelById);
+router.get("/with-min-room-price", hotelController.getHotelsWithMinRoomPrice);
 
 // Owner-only routes
 router.post("/", 
