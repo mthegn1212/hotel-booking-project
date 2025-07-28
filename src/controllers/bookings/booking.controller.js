@@ -4,20 +4,30 @@ const { getIO } = require("../../socket");
 
 exports.createBooking = async (req, res) => {
   try {
-    const booking = await BookingService.createBooking(req.body, req.user);
+    const bookingResult = await BookingService.createBooking({
+      ...req.body,
+      user: req.user,
+    });
 
+    // Gửi email xác nhận
     await sendEmail({
       to: req.user.email,
       subject: "Xác nhận đặt phòng thành công!",
-      html: booking.emailHtml,
+      html: bookingResult.booking.emailHtml || bookingResult.emailHtml,
     });
 
+    // Phát sự kiện real-time
     getIO().emit("booking_created", {
       message: `Người dùng ${req.user.id} vừa đặt phòng tại khách sạn!`,
     });
 
-    res.status(201).json({ message: "Đặt phòng thành công", booking });
+    // Trả về client
+    res.status(201).json({
+      message: "Đặt phòng thành công",
+      booking: bookingResult.booking,
+    });
   } catch (err) {
+    console.error("Error in createBooking controller:", err);
     res.status(err.status || 500).json({ message: err.message });
   }
 };

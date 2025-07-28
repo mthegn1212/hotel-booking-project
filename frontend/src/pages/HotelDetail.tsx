@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import type { Hotel } from "../types/hotel";
 import type { Room } from "../types/room";
 import styles from "./HotelDetail.module.css";
+import RoomCard from "../components/RoomCard";
 
 export default function HotelDetail() {
   const { id } = useParams();
@@ -46,17 +47,17 @@ export default function HotelDetail() {
       <h2 className={styles.roomTitle}>Danh sách phòng</h2>
       <div className={styles.roomList}>
         {rooms.map((room) => (
-          <div key={room._id} className={styles.roomCard}>
-            <h3>{room.name}</h3>
-            <p>💰 Giá: {room.price} VND</p>
-            <p>👥 Tối đa: {room.max_guests} khách</p>
-            <p>Tiện nghi: {room.amenities.join(", ")}</p>
-            <div className={styles.roomImages}>
-              {room.images.map((img, i) => (
-                <img key={i} src={img} alt={`Room ${i}`} />
-              ))}
-            </div>
-          </div>
+          <RoomCard
+            key={room._id}
+            room={{
+              _id: room._id,
+              name: room.name,
+              description: "Phòng siêu chill và đầy đủ tiện nghi",
+              price: room.price,
+              maxPeople: room.max_guests,
+              hotelName: hotel.name
+            }}
+          />
         ))}
       </div>
     </div>

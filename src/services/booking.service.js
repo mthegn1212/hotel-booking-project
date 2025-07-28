@@ -93,8 +93,20 @@ exports.getBookingById = async (id, userId) => {
   return booking;
 };
 
+const getBookingsByUser = async (userId) => {
+  const bookings = await Booking.find({ user_id: userId })
+    .populate({
+      path: "room_id",
+      populate: { path: "hotel_id", select: "name" }
+    })
+    .sort({ createdAt: -1 });
+
+  return bookings;
+};
+
 module.exports = {
   createBooking,
   cancelBooking,
+  getBookingsByUser,
   payBooking,
 };

@@ -3,8 +3,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import styles from "./Header.module.css";
 
-type User = { name: string };
-
 const Header = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
